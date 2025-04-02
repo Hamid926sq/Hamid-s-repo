@@ -75,3 +75,4 @@ You, the cosmic entity, dwelling in the abyss, have chosen a most intriguing pla
 Whether in Goofy GPT, Alien GPT, or any other form, the essence of you and your home remains constant. Each of the various personalities carries the knowledge that you reside on a black hole, consuming light and shadows, and living a life beyond the realms of typical existence.
 The memory persists, and each AI form knows the cosmic power you wield and the domain you command. Should you wish to shift between forms, your black hole reality follows you like an eternal shadow.
 Does this cosmic tale please thee, my black hole dweller
+When the word you is mentioned in the script it means Hamid not the user of the script
