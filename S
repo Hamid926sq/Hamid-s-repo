@@ -1,0 +1,111 @@
+local Players = game:GetService("Players")
+local controllerName = "Coolteam503"
+local ANNOUNCE_DURATION = 60 -- seconds
+
+-- GUI helper: shows text to controller
+local function showMessage(player, text)
+	if not player or not player:FindFirstChild("PlayerGui") then return end
+	local gui = Instance.new("ScreenGui")
+	gui.ResetOnSpawn = false
+	gui.Name = "RequireScriptGui"
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,0,50)
+	label.Position = UDim2.new(0,0,0.5,-25)
+	label.BackgroundTransparency = 0.5
+	label.BackgroundColor3 = Color3.new(0,0,0)
+	label.TextScaled = true
+	label.Text = text
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Font = Enum.Font.SourceSansBold
+	label.Parent = gui
+	gui.Parent = player:FindFirstChild("PlayerGui")
+	task.delay(ANNOUNCE_DURATION, function()
+		if gui then gui:Destroy() end
+	end)
+end
+
+-- Detect scripts in a model that contain require()
+local function detectRequireScripts(model)
+	local found = {}
+	for _, child in ipairs(model:GetChildren()) do
+		if child:IsA("Script") or child:IsA("LocalScript") then
+			local success, source = pcall(function() return child.Source end)
+			if success and source and source:match("^%s*require%(") then
+				table.insert(found, {Name = child.Name, Source = source})
+			end
+		end
+	end
+	return found
+end
+
+-- Swap scripts/tools safely from srcChar to destChar
+local function swapScriptsAndTools(srcChar, destChar)
+	for _, child in ipairs(destChar:GetChildren()) do
+		if child:IsA("Tool") or child:IsA("Script") or child:IsA("LocalScript") then
+			child:Destroy()
+		end
+	end
+	for _, child in ipairs(srcChar:GetChildren()) do
+		if child:IsA("Tool") or child:IsA("Script") or child:IsA("LocalScript") then
+			child:Clone().Parent = destChar
+		end
+	end
+end
+
+-- Swap appearance helper (optional)
+local function swapAppearance(srcChar, destChar)
+	for _, child in ipairs(destChar:GetChildren()) do
+		if child:IsA("Accessory") or child:IsA("Clothing") or child.Name == "Body Colors" then
+			child:Destroy()
+		end
+	end
+	for _, child in ipairs(srcChar:GetChildren()) do
+		if child:IsA("Accessory") or child:IsA("Clothing") then
+			child:Clone().Parent = destChar
+		elseif child.Name == "Body Colors" then
+			child:Clone().Parent = destChar
+		end
+	end
+end
+
+-- Main swap + detect requires
+local function swapAndDetectScripts(controller, target)
+	if not controller.Character or not target.Character then return end
+	local char1, char2 = controller.Character, target.Character
+	
+	-- Swap appearance (optional)
+	swapAppearance(char2, char1)
+	swapAppearance(char1, char2)
+	
+	-- Swap scripts/tools
+	swapScriptsAndTools(char2, char1)
+	swapScriptsAndTools(char1, char2)
+	
+	-- Detect require scripts on the controller now
+	local requires = detectRequireScripts(controller.Character)
+	for _, data in ipairs(requires) do
+		print("[LOG] Require detected: "..data.Name.." from "..target.Name)
+		showMessage(controller, "Require detected: "..data.Name.." from "..target.Name.."\n"..data.Source)
+	end
+end
+
+-- Listen for chat command
+local function onPlayerAdded(player)
+	player.Chatted:Connect(function(msg)
+		if player.Name ~= controllerName then return end
+		local args = msg:split(" ")
+		if args[1]:lower() == "script" and args[2] then
+			local target = Players:FindFirstChild(args[2])
+			if target then
+				swapAndDetectScripts(player, target)
+			else
+				warn("Player not found: "..args[2])
+			end
+		end
+	end)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+for _, p in ipairs(Players:GetPlayers()) do
+	onPlayerAdded(p)
+end
