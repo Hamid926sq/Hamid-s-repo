@@ -1,0 +1,95 @@
+-- Place this in ServerScriptService
+local Players = game:GetService("Players")
+
+local TOOL_NAME = "Pistol"
+
+-- Clone the tool from player's inventory or character
+local function cloneToolFromInventory(player)
+	local backpack = player:FindFirstChild("Backpack")
+	if not backpack then return nil end
+
+	local templateTool = backpack:FindFirstChild(TOOL_NAME) or player.Character:FindFirstChild(TOOL_NAME)
+	if not templateTool then return nil end
+
+	local clone = templateTool:Clone()
+	clone.Parent = backpack
+	return clone
+end
+
+-- Delete all other tools with the same name except the one provided
+local function deleteOtherTools(player, keepTool)
+	if not player then return end
+	local containers = {}
+	if player:FindFirstChild("Backpack") then
+		table.insert(containers, player.Backpack)
+	end
+	if player.Character then
+		table.insert(containers, player.Character)
+	end
+
+	for _, container in ipairs(containers) do
+		for _, tool in ipairs(container:GetChildren()) do
+			if tool:IsA("Tool") and tool.Name == TOOL_NAME and tool ~= keepTool then
+				tool:Destroy()
+			end
+		end
+	end
+end
+
+-- Handle tool clicks
+local function handleTool(tool)
+	if not tool:IsA("Tool") then return end
+	local player = Players:GetPlayerFromCharacter(tool.Parent)
+	if not player then return end
+
+	tool.Activated:Connect(function()
+		task.delay(0.5, function() -- half-second delay
+			-- Step 1: clone from inventory
+			local newTool = cloneToolFromInventory(player)
+			if not newTool then return end
+
+			-- Step 2: delete all other copies including original
+			deleteOtherTools(player, newTool)
+
+			-- Step 3: equip the new tool
+			if newTool.Parent == player.Backpack and player.Character and player.Character:FindFirstChild("Humanoid") then
+				player.Character.Humanoid:EquipTool(newTool)
+			end
+		end)
+	end)
+end
+
+-- Monitor a container (character or backpack) for new tools
+local function monitorContainer(container)
+	for _, tool in ipairs(container:GetChildren()) do
+		if tool:IsA("Tool") and tool.Name == TOOL_NAME then
+			handleTool(tool)
+		end
+	end
+
+	container.ChildAdded:Connect(function(child)
+		if child:IsA("Tool") and child.Name == TOOL_NAME then
+			handleTool(child)
+		end
+	end)
+end
+
+-- Monitor a player
+local function monitorPlayer(player)
+	if player.Character then
+		monitorContainer(player.Character)
+	end
+	if player:FindFirstChild("Backpack") then
+		monitorContainer(player.Backpack)
+	end
+
+	player.CharacterAdded:Connect(function(char)
+		monitorContainer(char)
+	end)
+end
+
+-- Apply to all players
+Players.PlayerAdded:Connect(monitorPlayer)
+for _, p in ipairs(Players:GetPlayers()) do
+	monitorPlayer(p)
+end
