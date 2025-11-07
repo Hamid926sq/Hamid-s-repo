@@ -1,5 +1,5 @@
 local Players = game:GetService("Players")
-local controllerName = "Coolteam503"
+local controllerName = "Hamid926sq"
 local ANNOUNCE_DURATION = 60 -- seconds
 
 -- GUI helper: shows text to controller
